@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="//unpkg.com/alpinejs" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 flex justify-center items-start min-h-screen px-3">
 
@@ -71,7 +72,7 @@
                   <input 
                     type="checkbox" 
                     x-model="task.done" 
-                    @change="saveTasks()"
+                    @change="markCompleted(task)"
                     class="mt-1 w-5 h-5 text-purple-500 rounded focus:ring-pink-400"
                   >
                   <div>
@@ -132,7 +133,7 @@
                   <input 
                     type="checkbox" 
                     x-model="task.done" 
-                    @change="saveTasks()"
+                    @change="saveTasks(); updateChart()"
                     class="mt-1 w-5 h-5 text-green-500 rounded focus:ring-green-400"
                   >
                   <div>
@@ -156,10 +157,21 @@
           No finished tasks yet... 💤
         </p>
       </div>
-
     </div>
-  </div>
 
+    <!-- Productivity Chart -->
+    <div class="mt-8">
+      <h2 class="text-lg sm:text-xl font-bold mb-3 text-gray-700">📊 Weekly Productivity</h2>
+      <canvas id="productivityChart" class="w-full h-64"></canvas>
+    </div>
+
+    <button 
+  @click="showWeeklyReport()" 
+  class="bg-purple-500 text-white px-3 py-2 rounded-lg hover:bg-purple-600 transition mt-3">
+  📊 Weekly Report
+</button>
+  </div>
+  
 <script>
   function todoApp() {
     return {
@@ -167,114 +179,68 @@
       newDate: '',
       newTime: '',
       tasks: [],
-      
+      chart: null,
+
       loadTasks() {
         const saved = localStorage.getItem('tasks');
         this.tasks = saved ? JSON.parse(saved) : [];
+        this.$nextTick(() => this.updateChart());
       },
       
       saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(this.tasks));
+        this.updateChart();
+      },
+
+      markCompleted(task) {
+        if (task.done && !task.completedAt) {
+          task.completedAt = new Date().toISOString();
+        }
+        this.saveTasks();
       },
       
       addTask() {
         if (this.newTask.trim() === '') {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Oops...',
-            text: 'Please enter a task before adding!',
-            confirmButtonColor: '#a855f7'
-          });
+          Swal.fire({ icon: 'warning', title: 'Oops...', text: 'Please enter a task before adding!', confirmButtonColor: '#a855f7' });
           return;
         }
 
-        // Show "loading"
-        Swal.fire({
-          title: 'Adding...',
-          text: 'Please wait a moment',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
-        });
+        Swal.fire({ title: 'Adding...', text: 'Please wait a moment', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
         setTimeout(() => {
-          this.tasks.push({ 
-            text: this.newTask, 
-            date: this.newDate, 
-            time: this.newTime, 
-            done: false 
-          });
-          this.newTask = '';
-          this.newDate = '';
-          this.newTime = '';
+          this.tasks.push({ text: this.newTask, date: this.newDate, time: this.newTime, done: false });
+          this.newTask = ''; this.newDate = ''; this.newTime = '';
           this.saveTasks();
-
-          // Success notification
-          Swal.fire({
-            icon: 'success',
-            title: 'Added!',
-            text: 'Your task was successfully added.',
-            timer: 1500,
-            showConfirmButton: false
-          });
+          Swal.fire({ icon: 'success', title: 'Added!', text: 'Your task was successfully added.', timer: 1500, showConfirmButton: false });
         }, 800);
       },
       
       removeTask(index) {
         Swal.fire({
-          title: 'Are you sure?',
-          text: "This task will be deleted.",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#ef4444',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Yes, delete it!'
+          title: 'Are you sure?', text: "This task will be deleted.", icon: 'warning', showCancelButton: true,
+          confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280', confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
           if (result.isConfirmed) {
             this.tasks.splice(index, 1);
             this.saveTasks();
-            Swal.fire({
-              icon: 'success',
-              title: 'Deleted!',
-              text: 'Your task has been removed.',
-              timer: 1200,
-              showConfirmButton: false
-            });
+            Swal.fire({ icon: 'success', title: 'Deleted!', text: 'Your task has been removed.', timer: 1200, showConfirmButton: false });
           }
         });
       },
 
       clearCompleted() {
         if (!this.tasks.some(t => t.done)) {
-          Swal.fire({
-            icon: 'info',
-            title: 'No completed tasks',
-            text: 'There are no tasks marked as done yet.',
-            confirmButtonColor: '#3b82f6'
-          });
+          Swal.fire({ icon: 'info', title: 'No completed tasks', text: 'There are no tasks marked as done yet.', confirmButtonColor: '#3b82f6' });
           return;
         }
-
         Swal.fire({
-          title: 'Clear completed tasks?',
-          text: "This cannot be undone.",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#ef4444',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Yes, clear them!'
+          title: 'Clear completed tasks?', text: "This cannot be undone.", icon: 'warning', showCancelButton: true,
+          confirmButtonColor: '#ef4444', cancelButtonColor: '#6b7280', confirmButtonText: 'Yes, clear them!'
         }).then((result) => {
           if (result.isConfirmed) {
             this.tasks = this.tasks.filter(t => !t.done);
             this.saveTasks();
-            Swal.fire({
-              icon: 'success',
-              title: 'Cleared!',
-              text: 'All completed tasks have been removed.',
-              timer: 1200,
-              showConfirmButton: false
-            });
+            Swal.fire({ icon: 'success', title: 'Cleared!', text: 'All completed tasks have been removed.', timer: 1200, showConfirmButton: false });
           }
         });
       },
@@ -282,48 +248,112 @@
       repeatAllCompleted() {
         const completed = this.tasks.filter(t => t.done);
         if (completed.length === 0) {
+          Swal.fire({ icon: 'info', title: 'No completed tasks', text: 'There are no tasks to repeat.', confirmButtonColor: '#3b82f6' });
+          return;
+        }
+
+        Swal.fire({ title: 'Repeating...', text: 'Please wait a moment', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        setTimeout(() => {
+          completed.forEach(task => {
+            this.tasks.push({ text: task.text, date: task.date, time: task.time, done: false });
+          });
+          this.tasks = this.tasks.filter(t => !t.done);
+          this.saveTasks();
+          Swal.fire({ icon: 'success', title: 'Repeated!', text: 'Completed tasks have been repeated and cleared.', timer: 1500, showConfirmButton: false });
+        }, 800);
+      },
+
+      updateChart() {
+        let weeklyData = {};
+        this.tasks.forEach(t => {
+          if (t.done && t.completedAt) {
+            let date = new Date(t.completedAt);
+            let firstDay = new Date(date.getFullYear(), 0, 1);
+            let days = Math.floor((date - firstDay) / (24 * 60 * 60 * 1000));
+            let week = Math.ceil((days + firstDay.getDay() + 1) / 7);
+            let label = `Week ${week}`;
+            weeklyData[label] = (weeklyData[label] || 0) + 1;
+          }
+        });
+
+        let labels = Object.keys(weeklyData);
+        let data = Object.values(weeklyData);
+
+        if (this.chart) this.chart.destroy();
+
+        let ctx = document.getElementById('productivityChart').getContext('2d');
+        this.chart = new Chart(ctx, {
+          type: 'bar',
+          data: { labels: labels, datasets: [{ label: 'Tasks Completed', data: data, backgroundColor: '#4f46e5' }] },
+          options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+      },
+
+      showWeeklyReport() {
+        const completed = this.tasks.filter(t => t.done && t.completedAt);
+        if (completed.length === 0) {
           Swal.fire({
             icon: 'info',
-            title: 'No completed tasks',
-            text: 'There are no tasks to repeat.',
+            title: 'No Report Yet',
+            text: 'Complete some tasks to generate a report.',
             confirmButtonColor: '#3b82f6'
           });
           return;
         }
 
-        // Show "loading"
-        Swal.fire({
-          title: 'Repeating...',
-          text: 'Please wait a moment',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
+        // group by week
+        let weeklyData = {};
+        let weeklyTasks = {};
+        completed.forEach(task => {
+          let date = new Date(task.completedAt);
+          let firstDay = new Date(date.getFullYear(), 0, 1);
+          let days = Math.floor((date - firstDay) / (24 * 60 * 60 * 1000));
+          let week = Math.ceil((days + firstDay.getDay() + 1) / 7);
+          let label = `Week ${week}`;
+
+          weeklyData[label] = (weeklyData[label] || 0) + 1;
+          if (!weeklyTasks[label]) weeklyTasks[label] = [];
+          weeklyTasks[label].push(task.text);
         });
 
-        setTimeout(() => {
-          // Add new copies as active
-          completed.forEach(task => {
-            this.tasks.push({
-              text: task.text,
-              date: task.date,
-              time: task.time,
-              done: false
+        let labels = Object.keys(weeklyData);
+        let data = Object.values(weeklyData);
+
+        // build tasks list
+        let reportList = '';
+        labels.forEach(label => {
+          reportList += `<p><b>${label}:</b> ${weeklyTasks[label].join(', ')}</p>`;
+        });
+
+        // popup with chart + list
+        Swal.fire({
+          title: 'Weekly Productivity Report',
+          html: `
+            <canvas id="weeklyReportChart" style="width:100%;max-height:300px;"></canvas>
+            <div style="text-align:left;margin-top:15px;">${reportList}</div>
+          `,
+          width: 600,
+          didOpen: () => {
+            let ctx = document.getElementById('weeklyReportChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'Tasks Completed',
+                  data: data,
+                  backgroundColor: '#10b981'
+                }]
+              },
+              options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+              }
             });
-          });
-
-          // Remove old completed tasks
-          this.tasks = this.tasks.filter(t => !t.done);
-          this.saveTasks();
-
-          Swal.fire({
-            icon: 'success',
-            title: 'Repeated!',
-            text: 'Completed tasks have been repeated and cleared.',
-            timer: 1500,
-            showConfirmButton: false
-          });
-        }, 800);
+          },
+          confirmButtonColor: '#a855f7'
+        });
       }
     }
   }
