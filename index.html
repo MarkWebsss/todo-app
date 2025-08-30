@@ -392,7 +392,7 @@
 <div id="suggestion-form" class="fixed bottom-20 right-5 w-80 bg-white shadow-lg rounded p-4 z-50 opacity-0 translate-y-10 pointer-events-none transition-all duration-500">
   <h3 class="text-lg font-semibold mb-2 text-gray-800">Send a Suggestion</h3>
   <form id="contact-form-floating" class="space-y-2 text-black">
-    <input type="text" name="name" placeholder="Your Name" required
+    <input type="text" name="name" placeholder="Your Name(optional)" 
            class="w-full p-2 border border-gray-300 rounded focus:ring focus:ring-indigo-300" />
     <input type="email" name="email" placeholder="Your Email" required
            class="w-full p-2 border border-gray-300 rounded focus:ring focus:ring-indigo-300" />
@@ -408,12 +408,16 @@
 <script>
 function toggleForm() {
   const form = document.getElementById("suggestion-form");
+  const btnDiv = document.getElementById("suggestion-btn");
+
   if (form.classList.contains("opacity-0")) {
     form.classList.remove("opacity-0", "translate-y-10", "pointer-events-none");
     form.classList.add("opacity-100", "translate-y-0");
+    btnDiv.classList.remove("animate-bounce"); // stop bounce
   } else {
     form.classList.add("opacity-0", "translate-y-10", "pointer-events-none");
     form.classList.remove("opacity-100", "translate-y-0");
+    btnDiv.classList.add("animate-bounce"); // resume bounce
   }
 }
 
@@ -447,6 +451,7 @@ document.getElementById("contact-form-floating").addEventListener("submit", asyn
   }
 });
 </script>
+
 
 </body>
 </html>
