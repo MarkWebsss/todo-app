@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productivity To-Do List</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="//unpkg.com/alpinejs" defer></script>
+</head>
+<body class="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 flex items-center justify-center min-h-screen px-3">
+
+  <div 
+    x-data="todoApp()" 
+    x-init="loadTasks()" 
+    class="bg-white/80 backdrop-blur-xl shadow-2xl rounded-2xl w-full max-w-5xl p-4 sm:p-6 border border-gray-200"
+  >
+    <!-- Title -->
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-center mb-4 sm:mb-6 text-gray-800 tracking-wide">
+      My Productivity Board
+    </h1>
+    
+    <!-- Input with Date & Time -->
+    <form @submit.prevent="addTask" class="flex flex-col sm:flex-row gap-3 mb-6">
+      <input 
+        type="text" 
+        x-model="newTask"
+        placeholder="Task name..." 
+        class="flex-1 px-4 py-2 sm:py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-700 text-sm sm:text-base"
+      >
+      <input 
+        type="date" 
+        x-model="newDate"
+        class="px-4 py-2 sm:py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-700 text-sm sm:text-base"
+      >
+      <input 
+        type="time" 
+        x-model="newTime"
+        class="px-4 py-2 sm:py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-700 text-sm sm:text-base"
+      >
+      <button 
+        type="submit"
+        class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-2 sm:p-3 rounded-xl shadow-md transition-all duration-300 flex items-center justify-center"
+        title="Add Task"
+      >
+        <!-- Plus Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+      </button>
+    </form>
+
+    <!-- Tasks & Completed Split -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- Active Tasks -->
+      <div>
+        <h2 class="text-lg sm:text-xl font-bold mb-3 text-gray-700 flex justify-between items-center">
+          📝 Active Tasks 
+          <span class="text-xs sm:text-sm text-gray-500" x-text="tasks.filter(t => !t.done).length + ' left'"></span>
+        </h2>
+        <ul class="space-y-3">
+          <template x-for="(task, index) in tasks" :key="index">
+            <li 
+              x-show="!task.done"
+              class="bg-white p-3 sm:p-4 rounded-xl shadow hover:shadow-lg transition-all duration-300 border border-gray-100"
+              x-transition
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex items-start space-x-3">
+                  <input 
+                    type="checkbox" 
+                    x-model="task.done" 
+                    @change="saveTasks()"
+                    class="mt-1 w-5 h-5 text-purple-500 rounded focus:ring-pink-400"
+                  >
+                  <div>
+                    <span x-text="task.text" class="text-gray-700 font-medium block text-sm sm:text-base"></span>
+                    <small class="text-gray-500 block" x-show="task.date || task.time">
+                      Due: <span x-text="task.date"></span> <span x-text="task.time"></span>
+                    </small>
+                  </div>
+                </div>
+                <button 
+                  @click="removeTask(index)" 
+                  class="text-red-400 hover:text-red-600 transition"
+                >
+                  ✖
+                </button>
+              </div>
+            </li>
+          </template>
+        </ul>
+        <p x-show="tasks.filter(t => !t.done).length === 0" class="text-gray-400 mt-3 text-sm">
+          Nothing to do... 🌱
+        </p>
+      </div>
+
+      <!-- Completed Tasks -->
+      <div>
+        <h2 class="text-lg sm:text-xl font-bold mb-3 text-gray-700 flex items-center justify-between">
+          ✅ Completed
+          <button 
+            @click="clearCompleted()" 
+            class="text-xs sm:text-sm bg-red-100 text-red-500 px-2 sm:px-3 py-1 rounded-lg hover:bg-red-200 transition"
+            x-show="tasks.filter(t => t.done).length > 0"
+          >
+            Clear All
+          </button>
+        </h2>
+        <ul class="space-y-3">
+          <template x-for="(task, index) in tasks" :key="index">
+            <li 
+              x-show="task.done"
+              class="bg-green-50 p-3 sm:p-4 rounded-xl shadow-inner border border-green-200"
+              x-transition
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex items-start space-x-3">
+                  <input 
+                    type="checkbox" 
+                    x-model="task.done" 
+                    @change="saveTasks()"
+                    class="mt-1 w-5 h-5 text-green-500 rounded focus:ring-green-400"
+                  >
+                  <div>
+                    <span x-text="task.text" class="line-through text-gray-500 block text-sm sm:text-base"></span>
+                    <small class="text-gray-400 block" x-show="task.date || task.time">
+                      Done: <span x-text="task.date"></span> <span x-text="task.time"></span>
+                    </small>
+                  </div>
+                </div>
+                <button 
+                  @click="removeTask(index)" 
+                  class="text-red-400 hover:text-red-600 transition"
+                >
+                  ✖
+                </button>
+              </div>
+            </li>
+          </template>
+        </ul>
+        <p x-show="tasks.filter(t => t.done).length === 0" class="text-gray-400 mt-3 text-sm">
+          No finished tasks yet... 💤
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function todoApp() {
+      return {
+        newTask: '',
+        newDate: '',
+        newTime: '',
+        tasks: [],
+        
+        loadTasks() {
+          const saved = localStorage.getItem('tasks');
+          this.tasks = saved ? JSON.parse(saved) : [];
+        },
+        
+        saveTasks() {
+          localStorage.setItem('tasks', JSON.stringify(this.tasks));
+        },
+        
+        addTask() {
+          if (this.newTask.trim() !== '') {
+            this.tasks.push({ 
+              text: this.newTask, 
+              date: this.newDate, 
+              time: this.newTime, 
+              done: false 
+            });
+            this.newTask = '';
+            this.newDate = '';
+            this.newTime = '';
+            this.saveTasks();
+          }
+        },
+        
+        removeTask(index) {
+          this.tasks.splice(index, 1);
+          this.saveTasks();
+        },
+
+        clearCompleted() {
+          this.tasks = this.tasks.filter(t => !t.done);
+          this.saveTasks();
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
