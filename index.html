@@ -54,9 +54,9 @@
 
     <!-- Tasks & Completed Split -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      
+
       <!-- Active Tasks -->
-      <div>
+      <div class="bg-white/90 border border-purple-300 rounded-2xl p-4 shadow-md hover:shadow-lg transition">
         <h2 class="text-lg sm:text-xl font-bold mb-3 text-gray-700 flex justify-between items-center">
           📝 Active Tasks 
           <span class="text-xs sm:text-sm text-gray-500" x-text="tasks.filter(t => !t.done).length + ' left'"></span>
@@ -99,7 +99,7 @@
       </div>
 
       <!-- Completed Tasks -->
-      <div>
+      <div class="bg-green-50 border border-green-300 rounded-2xl p-4 shadow-md hover:shadow-lg transition">
         <h2 class="text-lg sm:text-xl font-bold mb-3 text-gray-700 flex items-center justify-between">
           ✅ Completed
           <div class="flex gap-2">
@@ -126,7 +126,7 @@
           <template x-for="(task, index) in tasks" :key="index">
             <li 
               x-show="task.done"
-              class="bg-green-50 p-3 sm:p-4 rounded-xl shadow-inner border border-green-200"
+              class="bg-green-100 p-3 sm:p-4 rounded-xl shadow-inner border border-green-200"
               x-transition
             >
               <div class="flex items-start justify-between">
