@@ -6,6 +6,7 @@
   <title>Productivity To-Do List</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="//unpkg.com/alpinejs" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 flex justify-center items-start min-h-screen px-3">
 
@@ -147,50 +148,127 @@
     </div>
   </div>
 
-  <script>
-    function todoApp() {
-      return {
-        newTask: '',
-        newDate: '',
-        newTime: '',
-        tasks: [],
-        
-        loadTasks() {
-          const saved = localStorage.getItem('tasks');
-          this.tasks = saved ? JSON.parse(saved) : [];
-        },
-        
-        saveTasks() {
-          localStorage.setItem('tasks', JSON.stringify(this.tasks));
-        },
-        
-        addTask() {
-          if (this.newTask.trim() !== '') {
-            this.tasks.push({ 
-              text: this.newTask, 
-              date: this.newDate, 
-              time: this.newTime, 
-              done: false 
-            });
-            this.newTask = '';
-            this.newDate = '';
-            this.newTime = '';
-            this.saveTasks();
-          }
-        },
-        
-        removeTask(index) {
-          this.tasks.splice(index, 1);
-          this.saveTasks();
-        },
-
-        clearCompleted() {
-          this.tasks = this.tasks.filter(t => !t.done);
-          this.saveTasks();
+<script>
+  function todoApp() {
+    return {
+      newTask: '',
+      newDate: '',
+      newTime: '',
+      tasks: [],
+      
+      loadTasks() {
+        const saved = localStorage.getItem('tasks');
+        this.tasks = saved ? JSON.parse(saved) : [];
+      },
+      
+      saveTasks() {
+        localStorage.setItem('tasks', JSON.stringify(this.tasks));
+      },
+      
+      addTask() {
+        if (this.newTask.trim() === '') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Oops...',
+            text: 'Please enter a task before adding!',
+            confirmButtonColor: '#a855f7'
+          });
+          return;
         }
+
+        // Show "loading"
+        Swal.fire({
+          title: 'Adding...',
+          text: 'Please wait a moment',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        setTimeout(() => {
+          this.tasks.push({ 
+            text: this.newTask, 
+            date: this.newDate, 
+            time: this.newTime, 
+            done: false 
+          });
+          this.newTask = '';
+          this.newDate = '';
+          this.newTime = '';
+          this.saveTasks();
+
+          // Success notification
+          Swal.fire({
+            icon: 'success',
+            title: 'Added!',
+            text: 'Your task was successfully added.',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        }, 800);
+      },
+      
+      removeTask(index) {
+        Swal.fire({
+          title: 'Are you sure?',
+          text: "This task will be deleted.",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#ef4444',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            this.tasks.splice(index, 1);
+            this.saveTasks();
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted!',
+              text: 'Your task has been removed.',
+              timer: 1200,
+              showConfirmButton: false
+            });
+          }
+        });
+      },
+
+      clearCompleted() {
+        if (!this.tasks.some(t => t.done)) {
+          Swal.fire({
+            icon: 'info',
+            title: 'No completed tasks',
+            text: 'There are no tasks marked as done yet.',
+            confirmButtonColor: '#3b82f6'
+          });
+          return;
+        }
+
+        Swal.fire({
+          title: 'Clear completed tasks?',
+          text: "This cannot be undone.",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#ef4444',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Yes, clear them!'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            this.tasks = this.tasks.filter(t => !t.done);
+            this.saveTasks();
+            Swal.fire({
+              icon: 'success',
+              title: 'Cleared!',
+              text: 'All completed tasks have been removed.',
+              timer: 1200,
+              showConfirmButton: false
+            });
+          }
+        });
       }
     }
-  </script>
+  }
+</script>
 
 </body>
 </html>
