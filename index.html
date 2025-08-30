@@ -8,6 +8,7 @@
   <script src="//unpkg.com/alpinejs" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
 </head>
 <body class="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 flex flex-col items-center min-h-screen px-3">
 
@@ -171,7 +172,6 @@
       📊 Weekly Report
     </button>
   </div>
-
   <!-- Footer -->
   <footer class="mt-6 mb-4 text-gray-600 text-sm text-center">
     © 2025 Made by <span class="font-semibold"><a href="https://github.com/MarkWebsss">MarkWebsss</a></span>
@@ -186,15 +186,35 @@
       tasks: [],
       chart: null,
 
+      // suggestions
+      newSuggestion: '',
+      suggestions: [],
+
       loadTasks() {
         const saved = localStorage.getItem('tasks');
         this.tasks = saved ? JSON.parse(saved) : [];
         this.$nextTick(() => this.updateChart());
       },
-      
+
       saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(this.tasks));
         this.updateChart();
+      },
+
+      loadSuggestions() {
+        const saved = localStorage.getItem('suggestions');
+        this.suggestions = saved ? JSON.parse(saved) : [];
+      },
+
+      addSuggestion() {
+        if (this.newSuggestion.trim() === '') {
+          Swal.fire({ icon: 'warning', title: 'Oops...', text: 'Please write a suggestion before submitting!', confirmButtonColor: '#a855f7' });
+          return;
+        }
+        this.suggestions.push(this.newSuggestion.trim());
+        this.newSuggestion = '';
+        localStorage.setItem('suggestions', JSON.stringify(this.suggestions));
+        Swal.fire({ icon: 'success', title: 'Thank you!', text: 'Your suggestion was submitted.', timer: 1500, showConfirmButton: false });
       },
 
       markCompleted(task) {
@@ -203,7 +223,7 @@
         }
         this.saveTasks();
       },
-      
+
       addTask() {
         if (this.newTask.trim() === '') {
           Swal.fire({ icon: 'warning', title: 'Oops...', text: 'Please enter a task before adding!', confirmButtonColor: '#a855f7' });
@@ -219,7 +239,7 @@
           Swal.fire({ icon: 'success', title: 'Added!', text: 'Your task was successfully added.', timer: 1500, showConfirmButton: false });
         }, 800);
       },
-      
+
       removeTask(index) {
         Swal.fire({
           title: 'Are you sure?', text: "This task will be deleted.", icon: 'warning', showCancelButton: true,
@@ -307,7 +327,6 @@
           return;
         }
 
-        // group by week
         let weeklyData = {};
         let weeklyTasks = {};
         completed.forEach(task => {
@@ -325,13 +344,11 @@
         let labels = Object.keys(weeklyData);
         let data = Object.values(weeklyData);
 
-        // build tasks list
         let reportList = '';
         labels.forEach(label => {
           reportList += `<p><b>${label}:</b> ${weeklyTasks[label].join(', ')}</p>`;
         });
 
-        // popup with chart + list
         Swal.fire({
           title: 'Weekly Productivity Report',
           html: `
@@ -362,6 +379,73 @@
       }
     }
   }
+</script>
+<!-- Floating Suggestion Button -->
+<div id="suggestion-btn" class="fixed bottom-5 right-5 z-50 animate-bounce">
+  <button class="bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-indigo-700 hover:scale-105 transition transform"
+          onclick="toggleForm()">
+    💡 Suggestion
+  </button>
+</div>
+
+<!-- Popup Form -->
+<div id="suggestion-form" class="fixed bottom-20 right-5 w-80 bg-white shadow-lg rounded p-4 z-50 opacity-0 translate-y-10 pointer-events-none transition-all duration-500">
+  <h3 class="text-lg font-semibold mb-2 text-gray-800">Send a Suggestion</h3>
+  <form id="contact-form-floating" class="space-y-2 text-black">
+    <input type="text" name="name" placeholder="Your Name" required
+           class="w-full p-2 border border-gray-300 rounded focus:ring focus:ring-indigo-300" />
+    <input type="email" name="email" placeholder="Your Email" required
+           class="w-full p-2 border border-gray-300 rounded focus:ring focus:ring-indigo-300" />
+    <textarea name="message" rows="3" placeholder="Your Suggestion" required
+           class="w-full p-2 border border-gray-300 rounded focus:ring focus:ring-indigo-300"></textarea>
+    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition">
+      Send
+    </button>
+    <p id="form-status-floating" class="text-sm mt-2 hidden"></p>
+  </form>
+</div>
+
+<script>
+function toggleForm() {
+  const form = document.getElementById("suggestion-form");
+  if (form.classList.contains("opacity-0")) {
+    form.classList.remove("opacity-0", "translate-y-10", "pointer-events-none");
+    form.classList.add("opacity-100", "translate-y-0");
+  } else {
+    form.classList.add("opacity-0", "translate-y-10", "pointer-events-none");
+    form.classList.remove("opacity-100", "translate-y-0");
+  }
+}
+
+document.getElementById("contact-form-floating").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const status = document.getElementById("form-status-floating");
+  const data = new FormData(form);
+
+  try {
+    const response = await fetch("https://formspree.io/f/xrblrvrn", {
+      method: "POST",
+      body: data,
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (response.ok) {
+      form.reset();
+      status.textContent = "Message sent successfully!";
+      status.className = "text-green-500 mt-2";
+      status.classList.remove("hidden");
+    } else {
+      status.textContent = "Oops! Something went wrong.";
+      status.className = "text-red-500 mt-2";
+      status.classList.remove("hidden");
+    }
+  } catch (error) {
+    status.textContent = "Network error. Please try again.";
+    status.className = "text-red-500 mt-2";
+    status.classList.remove("hidden");
+  }
+});
 </script>
 
 </body>
