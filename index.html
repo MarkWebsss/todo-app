@@ -100,13 +100,25 @@
       <div>
         <h2 class="text-lg sm:text-xl font-bold mb-3 text-gray-700 flex items-center justify-between">
           ✅ Completed
-          <button 
-            @click="clearCompleted()" 
-            class="text-xs sm:text-sm bg-red-100 text-red-500 px-2 sm:px-3 py-1 rounded-lg hover:bg-red-200 transition"
-            x-show="tasks.filter(t => t.done).length > 0"
-          >
-            Clear All
-          </button>
+          <div class="flex gap-2">
+            <!-- Clear All -->
+            <button 
+              @click="clearCompleted()" 
+              class="text-xs sm:text-sm bg-red-100 text-red-500 px-2 sm:px-3 py-1 rounded-lg hover:bg-red-200 transition"
+              x-show="tasks.filter(t => t.done).length > 0"
+            >
+              Clear All
+            </button>
+
+            <!-- Repeat All -->
+            <button 
+              @click="repeatAllCompleted()" 
+              class="text-xs sm:text-sm bg-blue-100 text-blue-500 px-2 sm:px-3 py-1 rounded-lg hover:bg-blue-200 transition"
+              x-show="tasks.filter(t => t.done).length > 0"
+            >
+              Repeat All
+            </button>
+          </div>
         </h2>
         <ul class="space-y-3">
           <template x-for="(task, index) in tasks" :key="index">
@@ -265,6 +277,53 @@
             });
           }
         });
+      },
+
+      repeatAllCompleted() {
+        const completed = this.tasks.filter(t => t.done);
+        if (completed.length === 0) {
+          Swal.fire({
+            icon: 'info',
+            title: 'No completed tasks',
+            text: 'There are no tasks to repeat.',
+            confirmButtonColor: '#3b82f6'
+          });
+          return;
+        }
+
+        // Show "loading"
+        Swal.fire({
+          title: 'Repeating...',
+          text: 'Please wait a moment',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        setTimeout(() => {
+          // Add new copies as active
+          completed.forEach(task => {
+            this.tasks.push({
+              text: task.text,
+              date: task.date,
+              time: task.time,
+              done: false
+            });
+          });
+
+          // Remove old completed tasks
+          this.tasks = this.tasks.filter(t => !t.done);
+          this.saveTasks();
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Repeated!',
+            text: 'Completed tasks have been repeated and cleared.',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        }, 800);
       }
     }
   }
